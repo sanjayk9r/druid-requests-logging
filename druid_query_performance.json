@@ -1,0 +1,153 @@
+{
+  "type": "kafka",
+  "spec": {
+    "ioConfig": {
+      "type": "kafka",
+      "consumerProperties": {
+        "bootstrap.servers": "node1:9092,node2:9092"
+      },
+      "topic": "requests-logging-events",
+      "inputFormat": {
+        "type": "json",
+        "flattenSpec": {
+          "useFieldDiscovery": true,
+          "fields": [
+            { 
+              "type": "path",
+              "name": "native_query",
+              "expr": "$.query"
+            },
+            {
+              "type": "path",
+              "name": "nested_queryId_sql",
+              "expr": "$.sqlQueryContext.queryId"
+            },
+            {
+              "type": "path",
+              "name": "nested_queryId_native",
+              "expr": "$.query.context.queryId"
+            },
+            {
+              "type": "path",
+              "name": "queryType",
+              "expr": "$.query.queryType"
+            },
+            {
+              "type": "path",
+              "name": "dataSourceName",
+              "expr": "$.query.dataSource.name"
+            },
+            {
+              "type": "path",
+              "name": "sqlQueryTime",
+              "expr": "$.queryStats['sqlQuery/time']"
+            },
+            {
+              "type": "path",
+              "name": "queryplanningTimeMs",
+              "expr": "$.queryStats['sqlQuery/planningTimeMs']"
+            },
+            {
+              "type": "path",
+              "name": "sqlQueryBytes",
+              "expr": "$.queryStats['sqlQuery/bytes']"
+            },
+            {
+              "type": "path",
+              "name": "querySuccessStatus",
+              "expr": "$.queryStats.success"
+            },
+            {
+              "type": "path",
+              "name": "queryStatusCode",
+              "expr": "$.queryStats.statusCode"
+            },
+            {
+              "type": "path",
+              "name": "userIdentity",
+              "expr": "$.queryStats.identity"
+            },
+            {
+              "type": "path",
+              "name": "nativeQueryTime",
+              "expr": "$.queryStats['query/time']"
+            },
+            {
+              "type": "path",
+              "name": "nativeQueryBytes",
+              "expr": "$.queryStats['query/bytes']"
+            }
+          ]
+        }
+      },
+      "useEarliestOffset": true
+    },
+    "dataSchema": {
+      "dataSource": "druid_query_performance",
+      "timestampSpec": {
+        "column": "__time",
+        "format": "auto"
+      },
+      "transformSpec": {
+        "transforms": [
+          {
+            "type": "expression",
+            "name": "queryId",
+            "expression": "coalesce(nested_queryId_sql, nested_queryId_native)"
+          },
+          {
+            "type": "expression",
+            "name": "queryTimeMs",
+            "expression": "coalesce(sqlQueryTime, nativeQueryTime)"
+          },
+          {
+            "type": "expression",
+            "name": "queryBytes",
+            "expression": "coalesce(sqlQueryBytes, nativeQueryBytes)"
+          }
+        ]
+      },
+      "dimensionsSpec": {
+        "dimensions": [
+          "queryId",
+          "environment",
+          "service",
+          "clusterName",
+          "host",
+          "customer",
+          "sql",
+          "native_query",
+          "remoteAddr",
+          "queryType",
+          "dataSourceName",
+          "userIdentity",
+          "querySuccessStatus",
+          "queryStatusCode"
+        ]
+      },
+      "metricsSpec": [
+        {
+          "type": "longMax",
+          "name": "queryTimeMs",
+          "fieldName": "queryTimeMs"
+        },
+        {
+          "type": "longMax",
+          "name": "planningTimeMs",
+          "fieldName": "queryplanningTimeMs"
+        },
+        {
+          "type": "longMax",
+          "name": "queryBytes",
+          "fieldName": "queryBytes"
+        }
+      ],
+      "granularitySpec": {
+        "type": "uniform",
+        "segmentGranularity": "DAY",
+        "queryGranularity": "SECOND",
+        "rollup": false
+      }
+    }
+  }
+}
